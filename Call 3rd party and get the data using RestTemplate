@@ -1,1 +1,69 @@
 
+FakeStoreProductServiceImpl.java
+@Service("fakeStoreProductService")
+public class FakeStoreProductServiceImpl implements ProductService{
+    private RestTemplateBuilder restTemplateBuilder;
+
+    public FakeStoreProductServiceImpl(RestTemplateBuilder restTemplateBuilder) {
+        this.restTemplateBuilder = restTemplateBuilder;
+    }
+
+
+  @Override
+    public ProductResponseDTO getProductById(int id) {
+        String getAllProductsURL = "https://fakestoreapi.com/products/" + id;//This is the url of 3rd party 
+        RestTemplate restTemplate = restTemplateBuilder.build();
+        ResponseEntity<ProductResponseDTO> productResponse =
+                restTemplate.getForEntity(getAllProductsURL, ProductResponseDTO.class);//RestTemplate return ResponseEntity
+        return productResponse.getBody();
+    }
+
+
+ProductService.java
+
+public interface ProductService {
+    ProductListResponseDTO getAllProducts();
+    ProductResponseDTO getProductById(int id);
+    Product createProduct(Product product);
+    Product deleteProduct(int id);
+    Product updateProduct(int id, Product updatedProduct);
+}
+
+ProductServiceImpl.java
+
+@Service("productService")
+public class ProductServiceImpl implements ProductService{
+    @Override
+    public ProductListResponseDTO getAllProducts() {
+        return null;
+    }
+
+    @Override
+    public ProductResponseDTO getProductById(int id) {
+        return null;
+    }
+
+    @Override
+    public Product createProduct(Product product) {
+        return null;
+    }
+
+    @Override
+    public Product deleteProduct(int id) {
+        return null;
+    }
+
+    @Override
+    public Product updateProduct(int id, Product updatedProduct) {
+        return null;
+    }
+}
+
+
+ProductController.java
+@GetMapping("/products/1")
+    public ResponseEntity getProductFromId(){
+  ProductResponseDTO response = productService.getProductById(1);
+        return ResponseEntity.ok(response);
+    }
+
