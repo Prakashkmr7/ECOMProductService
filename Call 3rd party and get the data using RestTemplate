@@ -61,6 +61,11 @@ public class ProductServiceImpl implements ProductService{
 
 
 ProductController.java
+    //Field Injection
+     @Autowired
+     @Qualifier("fakeStoreProductService")
+     private ProductService productService;
+
 @GetMapping("/products/1")
     public ResponseEntity getProductFromId(){
   ProductResponseDTO response = productService.getProductById(1);
