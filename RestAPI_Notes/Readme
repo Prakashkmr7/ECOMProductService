@@ -1,0 +1,276 @@
+CRUD (4 API)
+
+API 1 - Create Products
+Client :-
+FakeStoreAPIClient.java
+public class FakeStoreAPIClient {
+    private RestTemplateBuilder restTemplateBuilder;
+    
+    public FakeStoreAPIClient(RestTemplateBuilder restTemplateBuilder) {
+        this.restTemplateBuilder = restTemplateBuilder;
+           }
+
+//So in client side own requestDTO and responseDTO.
+ public FakeStoreProductResponseDTO createProduct(FakeStoreProductRequestDTO fakeStoreProductRequestDTO){
+        String createProductUrl  = fakeStoreAPIURL + fakeStoreAPIPathProduct;
+        RestTemplate restTemplate = restTemplateBuilder.build();
+        ResponseEntity<FakeStoreProductResponseDTO> productResponse =
+                restTemplate.postForEntity(createProductUrl, fakeStoreProductRequestDTO, FakeStoreProductResponseDTO.class);
+        return productResponse.getBody();
+    }
+
+Service
+FakeStoreProductServiceImpl.java
+
+@Service("fakeStoreProductService")
+public class FakeStoreProductServiceImpl implements ProductService{
+    private RestTemplateBuilder restTemplateBuilder;
+    private FakeStoreAPIClient fakeStoreAPIClient;
+
+
+	//Here no need of @Autowired in new version of Spring(ffor Constructor Injection)
+    public FakeStoreProductServiceImpl(RestTemplateBuilder restTemplateBuilder, FakeStoreAPIClient fakeStoreAPIClient) {
+        this.restTemplateBuilder = restTemplateBuilder;
+        this.fakeStoreAPIClient = fakeStoreAPIClient;
+    }
+
+
+
+@Getter
+@Setter
+public class ProductResponseDTO {
+    private UUID id;
+    private String title;
+    private double price;
+    private String category;
+    private String description;
+    private String image;
+}
+
+@Getter
+@Setter
+public class ProductRequestDTO {
+    private String title;
+    private double price;
+    private String category;
+    private String description;
+    private String image;
+ProductRequestDTO and ProductResponseDTO are same only id is extra there in response 
+FakeStoreProductRequestDTO and FackeStoreProductResponseDTO both are same only id is extra there in response.
+
+@Setter
+@Getter
+public class FakeStoreProductRequestDTO {
+    private String title;
+    private double price;
+    private String category;
+    private String description;
+    private String image;
+}
+-> this we are using in above FakeStoreAPIClient class in createProduct method.
+
+Service :-
+FakeStoreProductServiceImpl 
+ @Override
+    public ProductResponseDTO createProduct(ProductRequestDTO productRequestDTO) {//In service will accept productRequest and response will ProductResponse
+
+//we cannot pass productRequestDTO as it is so we need mapper for this, create one class for mapper say ProductMapper (static method inside it for mapping)       
+ FakeStoreProductRequestDTO fakeStoreProductRequestDTO = productRequestToFakeStoreProductRequest(productRequestDTO);//Here directly using method by importing this class and method which makes code cleaner to read.(it work only with static method- remember).
+
+//One more mapper for fakeProductResponseToProductResponse as we want to display only few attributes by converting into fakeProductResponseToProductResponse object and //set
+        FakeStoreProductResponseDTO fakeStoreProductDTO = fakeStoreAPIClient.createProduct(fakeStoreProductRequestDTO);
+        return fakeProductResponseToProductResponse(fakeStoreProductDTO);
+    }
+
+Note: Mapper is when there is conversion of Object and Adapter when we call 3rd party.
+ProductMapper.java//generally for Mapping - conversion o Object from one obj to another- reading from inut converting into output 
+public class ProductMapper {
+    public static FakeStoreProductRequestDTO productRequestToFakeStoreProductRequest(ProductRequestDTO productRequestDTO){
+        FakeStoreProductRequestDTO fakeStoreProductRequestDTO = new FakeStoreProductRequestDTO();//creating empty obj and in that setting new values below
+        fakeStoreProductRequestDTO.setCategory(productRequestDTO.getCategory());//reading from productRequestDTO using getters and putting in new obj.
+        fakeStoreProductRequestDTO.setDescription(productRequestDTO.getDescription());
+        fakeStoreProductRequestDTO.setPrice(productRequestDTO.getPrice());
+        fakeStoreProductRequestDTO.setImage(productRequestDTO.getImage());
+        fakeStoreProductRequestDTO.setTitle(productRequestDTO.getTitle());
+        return fakeStoreProductRequestDTO;
+    }
+
+
+public static ProductResponseDTO fakeProductResponseToProductResponse(FakeStoreProductResponseDTO fakeStoreProductResponseDTO){
+        ProductResponseDTO productResponseDTO = new ProductResponseDTO();
+        productResponseDTO.setId(fakeStoreProductResponseDTO.getId());
+        productResponseDTO.setPrice(fakeStoreProductResponseDTO.getPrice());
+        productResponseDTO.setTitle(fakeStoreProductResponseDTO.getTitle());
+        productResponseDTO.setDescription(fakeStoreProductResponseDTO.getDescription());
+        productResponseDTO.setCategory(fakeStoreProductResponseDTO.getCategory());
+        productResponseDTO.setImage(fakeStoreProductResponseDTO.getImage());
+        return productResponseDTO;
+    }
+Now ProductController.java 
+@PostMapping("/products")
+    public ResponseEntity createProduct(@RequestBody ProductRequestDTO productRequestDTO){
+        ProductResponseDTO responseDTO = productService.createProduct(productRequestDTO);
+        return ResponseEntity.ok(responseDTO);
+    }
+Code flow
+Api-><-Controller-><-Service-><-mapper-><-API Client-><-3rd party
+
+
+
+API 2- getProductsbyId
+FakeStoreAPIClient.java
+
+public class FakeStoreAPIClient {
+    private RestTemplateBuilder restTemplateBuilder;
+    private String fakeStoreAPIURL;
+    @Value("${fakestore.api.path.product}")
+    private String fakeStoreAPIPathProduct;
+
+    public FakeStoreAPIClient(RestTemplateBuilder restTemplateBuilder,
+                              @Value("${fakestore.api.url}") String fakeStoreAPIURL) {
+        this.restTemplateBuilder = restTemplateBuilder;
+        this.fakeStoreAPIURL = fakeStoreAPIURL;
+    }
+
+public FakeStoreProductResponseDTO getProductById(int id){
+        String getProductByUrlId = fakeStoreAPIURL + fakeStoreAPIPathProduct + "/" + id;
+        RestTemplate restTemplate = restTemplateBuilder.build();
+        ResponseEntity<FakeStoreProductResponseDTO> productResponse =
+                restTemplate.getForEntity(getProductByUrlId, FakeStoreProductResponseDTO.class);
+        return productResponse.getBody();
+    }
+
+
+
+FakeStoreProductServiceImpl.java
+
+ @Override
+    public ProductResponseDTO getProductById(int id) throws ProductNotFoundException {
+        FakeStoreProductResponseDTO fakeStoreProductResponseDTO = fakeStoreAPIClient.getProductById(id);
+        if(isNull(fakeStoreProductResponseDTO)){/Checking isNull using utility class which is below
+            throw new ProductNotFoundException("Product not found with id : " + id);//Custom Exception which is below
+        }
+        return fakeProductResponseToProductResponse(fakeStoreProductResponseDTO);
+    }
+ProductUtils.java
+public class ProductUtils {
+    public static boolean isNull(Object object){
+        return object == null;
+    }
+}
+
+
+ProductNotFoundException.java (Custom Exception)
+public class ProductNotFoundException extends Exception{
+    public ProductNotFoundException() {
+    }
+
+    public ProductNotFoundException(String message) {
+        super(message);
+    }
+
+    public ProductNotFoundException(String message, Throwable cause) {
+        super(message, cause);
+    }
+}
+
+ProductController.java
+
+GetMapping("/products/{id}")
+    public ResponseEntity getProductFromId(@PathVariable("id") int id) throws ProductNotFoundException {
+        
+     ProductResponseDTO response = productService.findProductByTitle(title);
+        return ResponseEntity.ok(response);
+    }
+
+
+
+
+----------------------------
+API getAllProducts API:-
+Client class
+ public List<FakeStoreProductResponseDTO> getAllProducts(){
+        String getAllProducts = fakeStoreAPIURL + fakeStoreAPIPathProduct;
+        RestTemplate restTemplate = restTemplateBuilder.build();
+        ResponseEntity<FakeStoreProductResponseDTO[]> productResponseArray =
+                restTemplate.getForEntity(getAllProducts, FakeStoreProductResponseDTO[].class);
+        return List.of(productResponseArray.getBody());//Converting array to List.(imp)
+    }
+
+FakeStoreProductServiceImpl.java
+
+@Override
+    public ProductListResponseDTO getAllProducts() {
+        List<FakeStoreProductResponseDTO> fakeStoreProductResponseDTOs = fakeStoreAPIClient.getAllProducts();
+	//will not return this DTO so need to map it ,for that First create list and do using for loop which is done below.
+        ProductListResponseDTO productListResponseDTO = new ProductListResponseDTO();
+        for(FakeStoreProductResponseDTO fakeStoreProductResponseDTO : fakeStoreProductResponseDTOs){
+            productListResponseDTO.getProducts().add(fakeProductResponseToProductResponse(fakeStoreProductResponseDTO));
+        }
+        return productListResponseDTO;
+    }
+
+
+----------------------------
+Delete API
+Client Class
+public void deleteProduct(int id){
+        String productDeleteURL = fakeStoreAPIURL + fakeStoreAPIPathProduct + "/" + id;
+        RestTemplate restTemplate = restTemplateBuilder.build();
+        restTemplate.delete(productDeleteURL);
+    }
+
+FakeStoreProductServiceImpl.java
+ @Override
+    public boolean deleteProduct(int id) {
+        fakeStoreAPIClient.deleteProduct(id);
+        return true;
+    }
+
+Note : For data we are not having we are getting internal Server error how to fix it using GlobalHandler.java?
+//CustomException will help us.
+@ControllerAdvice
+public class GlobalControllerAdvice {
+    @ExceptionHandler(value = ProductNotFoundException.class)
+    public ResponseEntity<ErrorResponseDTO> handleProductNotFoundException(Exception ex) {//when exception comes what will send to user/client message and code.
+//Create a new DTO called
+        ErrorResponseDTO errorResponse = new ErrorResponseDTO();
+        errorResponse.setMessage(ex.getMessage());//set exception message whatever getting using ex.getMessage().
+        errorResponse.setMessageCode(404);
+        return new ResponseEntity<>(errorResponse, HttpStatus.NOT_FOUND);
+    }
+what this method will do i any Controller will  throw product not found exception  @ExceptionHandler(value = ProductNotFoundException.class) this method 
+will get invoked and will get the data.
+Mostly GlobalControllerAdvice code will be pretty same ffor all only change the name of Custom Exception class, change name of method accordingly, DTO class.
+we should keep on throwing exception upwards and there should be someone who will catch it and that is ControllerAdvice.
+
+
+@Getter
+@Setter
+public class ErrorResponseDTO {
+    private String message;
+    private int messageCode;
+}
+
+
+URL changes:-
+
+
+Reading value from the configuration file
+
+#FakeStore Configuration
+fakestore.api.url = https://fakestoreapi.com
+fakestore.api.path.product=/products
+fakestore.api.path.category=/category
+
+
+two ways :- field injection and Constructor injection.
+
+@Value("${fakestore.api.path.product}")
+    private String fakeStoreAPIPathProduct;
+
+public FakeStoreAPIClient(RestTemplateBuilder restTemplateBuilder,
+                          @Value("${fakestore.api.url}") String fakeStoreAPIURL) {
+     this.restTemplateBuilder = restTemplateBuilder;
+    this.fakeStoreAPIURL = fakeStoreAPIURL;
+}
