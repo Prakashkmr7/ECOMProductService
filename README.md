@@ -80,3 +80,11 @@ Verify : it does not create/udpate anything, it just verifies if the DB has all 
 
 Local development -> create or update
 Production -> verify [ generally tables via separate scripts like FlyWay, Liquibase ]
+
+
+
+
+
+Reading Content URL :-
+UUID - https://uuid.ramsey.dev/en/stable/rfc4122/version7.html
+Hibernate Content - https://hibernate.org/orm/
