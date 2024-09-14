@@ -87,4 +87,5 @@ Production -> verify [ generally tables via separate scripts like FlyWay, Liquib
 
 Reading Content URL :-
 UUID - https://uuid.ramsey.dev/en/stable/rfc4122/version7.html
+https://en.wikipedia.org/wiki/Universally_unique_identifier
 Hibernate Content - https://hibernate.org/orm/
